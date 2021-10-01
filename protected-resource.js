@@ -30,24 +30,25 @@ app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
 app.get("/user-info", (req, res) => {
-	if (req.headers.hasOwnProperty("authorization")) {
-		const token = req.headers.authorization.slice("bearer ".length, -1)
-		jwt.verify(token, config.publicKey, { algorithms: ["RS256"] }, (err, decoded) => {
-			if (err) {
-				res.status(401).end()
-			} else {
-				const { userName, scope } = decoded
-				const fields = {}
-				scope.split(" ").array.forEach(permission => {
-					const field = permission.slice("permission:".length, -1)
-					fields[field] = users[userName][field]
-				});
-				res.json(fields)
-			}
-		})
-	} else {
+	if (!req.headers.authorization) {
 		res.status(401).end()
+		return
 	}
+
+	const token = req.headers.authorization.slice("bearer ".length)
+	jwt.verify(token, config.publicKey, { algorithms: ["RS256"] }, (err, decoded) => {
+		if (err) {
+			res.status(401).end()
+		} else {
+			const { userName, scope } = decoded
+			const fields = {}
+			scope.split(" ").forEach(permission => {
+				const field = permission.slice("permission:".length)
+				fields[field] = users[userName][field]
+			});
+			res.json(fields)
+		}
+	})
 })
 
 const server = app.listen(config.port, "localhost", function () {
